@@ -1,12 +1,12 @@
 from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, selectinload
-from app.core.security import hash_password
+from app.core.security import get_current_user, hash_password
 
 from app.database import get_db
 from app.models import User
 from app.schemas import UserCreate, UserUpdate, UserRead, UserReadWithPosts
-from app.crud import get_user_or_404
+from app.crud import get_user_or_404, is_allow
 
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -54,22 +54,32 @@ async def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{user_id}", response_model=UserRead)
 async def update_user_by_id(
-    user_id: int, user_upd: UserUpdate, db: Session = Depends(get_db)
+    user_id: int,
+    user_upd: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     user = get_user_or_404(db, user_id)
-    user.name = user_upd.name
-    user.age = user_upd.age
 
-    db.commit()
-    db.refresh(user)
+    if is_allow(user_id, current_user.id):
+        user.name = user_upd.name
+        user.age = user_upd.age
 
-    return user
+        db.commit()
+        db.refresh(user)
+
+        return user
 
 
 @router.delete("/{user_id}", response_model=UserRead)
-async def delete_user_by_id(user_id: int, db: Session = Depends(get_db)):
+async def delete_user_by_id(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     user = get_user_or_404(db, user_id)
 
-    db.delete(user)
-    db.commit()
-    return user
+    if is_allow(user_id, current_user.id):
+        db.delete(user)
+        db.commit()
+        return user
