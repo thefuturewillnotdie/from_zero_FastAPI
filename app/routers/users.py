@@ -23,7 +23,7 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     except IntegrityError:
         db.rollback()
         raise HTTPException(
-            status_code=400, detail="User with name {user.name} already exist."
+            status_code=400, detail=f"User with name {user.name} already exist."
         )
 
     db.refresh(new_user)

@@ -60,3 +60,11 @@ class LoginRequest(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class OneTag(BaseModel):
+    word: str
+
+
+class TagsAdd(BaseModel):
+    words: list[OneTag]
