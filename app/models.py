@@ -11,6 +11,8 @@ class User(Base):
     age = Column(Integer, nullable=False)
     password_hash = Column(String, nullable=False)
 
+    posts = relationship("Post", back_populates="user", cascade="all, delete")
+
 
 class Post(Base):
     __tablename__ = "posts"
@@ -19,6 +21,8 @@ class Post(Base):
     title = Column(String, nullable=False)
     content = Column(String, nullable=False)
 
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
 
-    user = relationship("User", backref="posts")
+    user = relationship("User", back_populates="posts")

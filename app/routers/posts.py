@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.core.security import get_current_user
 from app.database import get_db
-from app.models import Post
+from app.models import Post, User
 from app.schemas import PostCreate, PostUpdate, PostRead
-from app.crud import get_user_or_404, get_post_or_404
+from app.crud import get_user_or_404, get_post_or_404, is_allow
 
 router = APIRouter(prefix="/posts", tags=["posts"])
 
@@ -38,29 +39,34 @@ async def get_all_posts_of_user(
 
 @router.put("/users/{user_id}/posts/{post_id}", response_model=PostRead)
 async def update_post_for_user(
-    user_id: int, post_id: int, updated_post: PostUpdate, db: Session = Depends(get_db)
+    user_id: int,
+    post_id: int,
+    updated_post: PostUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    get_user_or_404(db, user_id)
-
     post = get_post_or_404(db, user_id=user_id, post_id=post_id)
 
-    post.title = updated_post.title
-    post.content = updated_post.content
-    db.commit()
-    db.refresh(post)
+    if is_allow(user_id, current_user.id):
+        post.title = updated_post.title
+        post.content = updated_post.content
+        db.commit()
+        db.refresh(post)
 
-    return post
+        return post
 
 
 @router.delete("/users/{user_id}/posts/{post_id}", response_model=PostRead)
 async def delete_post_for_user(
-    user_id: int, post_id: int, db: Session = Depends(get_db)
+    user_id: int,
+    post_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    get_user_or_404(db, user_id)
-
     post = get_post_or_404(db, user_id=user_id, post_id=post_id)
 
-    db.delete(post)
-    db.commit()
+    if is_allow(user_id, current_user.id):
+        db.delete(post)
+        db.commit()
 
-    return post
+        return post

@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
-from fastapi import HTTPException
+from fastapi import Depends, HTTPException
 
+from app.core.security import get_current_user
 from app.models import User, Post
 
 
@@ -30,3 +31,12 @@ def get_post_or_404(db: Session, *, user_id: int | None = None, post_id: int):
             status_code=404, detail=f"Post with ID {post_id} not found."
         )
     return post
+
+
+def is_allow(user_id: int, current_user: int):
+    if user_id != current_user:
+        raise HTTPException(
+            status_code=403, detail="You are not allowed to update this post."
+        )
+    else:
+        return True
